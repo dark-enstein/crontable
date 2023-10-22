@@ -1,6 +1,7 @@
 package meaning
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/dark-enstein/crontable/pkg/reader"
@@ -84,10 +85,38 @@ var CronDecodedTestInputs = written{
 				DelimKind: reader.DelimWildcard,
 			},
 		},
+		{
+			Minute: reader.Catcher{
+				Low:       10,
+				High:      []int{9},
+				DelimKind: reader.DelimComma,
+			},
+			Hour: reader.Catcher{
+				Low:       1,
+				High:      []int{30},
+				DelimKind: reader.DelimRange,
+			},
+			DayOfMonth: reader.Catcher{
+				Low:       6,
+				High:      []int{6},
+				DelimKind: reader.DelimEvery,
+			},
+			Month: reader.Catcher{
+				Low:       9,
+				High:      []int{9},
+				DelimKind: reader.DelimNone,
+			},
+			DayOfWeek: reader.Catcher{
+				Low:       6,
+				High:      []int{6},
+				DelimKind: reader.DelimWildcard,
+			},
+		},
 	},
 	[]string{
-		"On the 5th and 9th minute, between the 3rd and 19th hour, every 5th of the Month, on the 9th Month, every day of the week",
-		"On the 5th and 9th minute, between the 3rd and 19th hour, every 5th of the Month, on the 9th Month, every day of the week",
+		"On the 5th and 9th minute, between the 3rd and 19th hour, every 5th of the month, on the 5th month, every day of the week",
+		"On the 5th and 9th minute, between the 3rd and 19th hour, every 5th of the month, on the 5th month, every day of the week",
+		"On the 10th and 9th minute, between the 1st and 30th hour, every 6th of the month, on the 9th month, every day of the week",
 	},
 }
 
@@ -102,12 +131,14 @@ func (c *CronTab) SetupTest() {
 }
 
 // TestCronDecoded tests the Write function
-func (c *CronTab) TestCronDecoded() {
+func (c *CronTab) TestCronExplain() {
 	log := c.log
 	for i := 0; i < len(c.testState.input); i++ {
 		log.Printf("Decoding test input %v", c.testState.input[i])
-		resStr := Write(&c.testState.input[i])
-		c.Assert().Equal(c.testState.expected[i], string(resStr), fmt.Sprintf("expected %v, got %v. input: %v", c.testState.expected[i], resStr, c.testState.input[i]))
+		var resBytes bytes.Buffer
+		_, err := Write(&resBytes, Explain(&c.testState.input[i]))
+		c.Assert().NoError(err)
+		c.Assert().Equal(c.testState.expected[i], resBytes.String(), fmt.Sprintf("expected %v, got %v. input: %v", c.testState.expected[i], resBytes.String(), c.testState.input[i]))
 	}
 }
 

@@ -77,14 +77,16 @@ type CronExpressionDecoded struct {
 	DayOfWeek  Catcher
 }
 
-func (c *CronExpressionDecoded) FlattenToMap() *map[string]Catcher {
-	mapper := map[string]Catcher{}
-	mapper[Minute] = c.Minute
-	mapper[Hour] = c.Hour
-	mapper[DayOfTheMonth] = c.DayOfMonth
-	mapper[Month] = c.Month
-	mapper[DayOfTheWeek] = c.DayOfWeek
-	return &mapper
+func (c *CronExpressionDecoded) FlattenToMap() ([]string, map[string]*Catcher) {
+	mapper := map[string]*Catcher{}
+	mapper[Minute] = &c.Minute
+	mapper[Hour] = &c.Hour
+	mapper[DayOfTheMonth] = &c.DayOfMonth
+	mapper[Month] = &c.Month
+	mapper[DayOfTheWeek] = &c.DayOfWeek
+	// Ordered keys so that I can range over the map in an orderly manner
+	orderedKeys := []string{Minute, Hour, DayOfTheMonth, Month, DayOfTheWeek}
+	return orderedKeys, mapper
 }
 
 type Catcher struct {
@@ -114,7 +116,7 @@ func OpenCrontableFile(loc string) (*CronRead, error) {
 }
 
 func (cr *CronRead) Validate() (bool, error) {
-	str := cr.intoString()
+	str := cr.String()
 	valErr := 0
 	pieces := strings.Split(str, " ")
 	for i := 0; i < len(pieces); i++ {
@@ -130,7 +132,7 @@ func (cr *CronRead) Validate() (bool, error) {
 }
 
 func (cr *CronRead) Decode() *CronExpressionDecoded {
-	str := cr.intoString()
+	str := cr.String()
 	var catchAll []Catcher
 	pieces := strings.Split(str, " ")
 	for i := 0; i < len(pieces); i++ {
@@ -179,18 +181,20 @@ func validateWithFields(s string, low, high int) (int, []int, bool, int, error) 
 		if len(pieces) < 2 {
 			return 0, []int{-1}, false, delim, nil
 		}
+		var retInt []int
 		for i := 0; i < len(pieces); i++ {
 			if canBeNumber(pieces[i]) {
-				i, err := strconv.Atoi(s)
+				i, err := strconv.Atoi(pieces[i])
 				if err != nil {
 					return 0, []int{0}, false, delim, nil
 				}
 				if i < low || i > high {
 					return 0, []int{0}, false, delim, fmt.Errorf("number %d not within acceptable bounds", i)
 				}
-				return i, []int{i}, true, delim, nil
+				retInt = append(retInt, i)
 			}
 		}
+		return retInt[0], retInt[1:], true, delim, nil
 	}
 
 	isStartSlash, str := startSlashWhich(s)
@@ -237,7 +241,6 @@ func startSlashWhich(s string) (bool, string) {
 func canBeNumber(s string) bool {
 	_, err := strconv.Atoi(s)
 	if err != nil {
-		log.Println("error when attempting to convert string to int:", err.Error())
 		return false
 	}
 	return true
@@ -302,7 +305,7 @@ func containFavoredDelimiterWhich(s string) (bool, int, []string) {
 		log.Println("contains delimiter ,")
 		byComma := strings.Split(s, ",")
 		log.Printf("string split into %v", byComma)
-		if len(byComma) <= 2 {
+		if len(byComma) < 2 {
 			log.Printf("len of string %v is not 2", byComma)
 			return false, DelimComma, byComma
 		} else if len(byComma) >= 2 {
@@ -316,7 +319,7 @@ func containFavoredDelimiterWhich(s string) (bool, int, []string) {
 }
 
 func (cr *CronRead) MarshalIntoCronExpression() (*CronExpression, error) {
-	str := cr.intoString()
+	str := cr.String()
 	pieces := strings.Split(str, " ")
 	if len(pieces) < 5 {
 		return nil, fmt.Errorf("formatted cron expression has less than 5 arguments: %v", cr)
@@ -330,7 +333,7 @@ func (cr *CronRead) MarshalIntoCronExpression() (*CronExpression, error) {
 	}, nil
 }
 
-func (cr *CronRead) intoString() string {
+func (cr *CronRead) String() string {
 	//ref := reflect.ValueOf(cr)
 	//if ref.Kind() != reflect.String {
 	//	return ""
