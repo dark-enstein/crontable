@@ -61,6 +61,7 @@ var (
 
 type CronRead string
 
+// CronExpression holds the shallow understanding to the cron expression passed in a simple struct.
 type CronExpression struct {
 	Minute     string
 	Hour       string
@@ -69,6 +70,7 @@ type CronExpression struct {
 	DayOfWeek  string
 }
 
+// CronExpressionDecoded holds a deep understanding of the cron expression passed in a deeper struct
 type CronExpressionDecoded struct {
 	Minute     Catcher
 	Hour       Catcher
@@ -77,6 +79,7 @@ type CronExpressionDecoded struct {
 	DayOfWeek  Catcher
 }
 
+// FlattenToMap helps with easily accessing the values of CronExpressionDecoded in meaning.Explain by keys; helps minimize time complexity on retrieval
 func (c *CronExpressionDecoded) FlattenToMap() ([]string, map[string]*Catcher) {
 	mapper := map[string]*Catcher{}
 	mapper[Minute] = &c.Minute
@@ -89,12 +92,14 @@ func (c *CronExpressionDecoded) FlattenToMap() ([]string, map[string]*Catcher) {
 	return orderedKeys, mapper
 }
 
+// Catcher holds a unit of deep cron expression knowledge. It represents the type of token passed in at a time, and the valid bounds for any token at that position.
 type Catcher struct {
 	Low       int
 	High      []int
 	DelimKind int
 }
 
+// OpenCrontableFile opens the crontab file passed in as argument, casting it into wrapper type CronRead before returning. It errors with os.File errors, and when the file is structurally invalid
 func OpenCrontableFile(loc string) (*CronRead, error) {
 	file, err := os.ReadFile(loc)
 	if err != nil {
@@ -115,6 +120,7 @@ func OpenCrontableFile(loc string) (*CronRead, error) {
 	return &read, nil
 }
 
+// Validate validates a CronRead value. It checks that all the tokens are valid, and/or are within the bounds for their position
 func (cr *CronRead) Validate() (bool, error) {
 	str := cr.String()
 	valErr := 0
@@ -131,6 +137,7 @@ func (cr *CronRead) Validate() (bool, error) {
 	return true, nil
 }
 
+// Decode converts a CronRead into its CronExpressionDecoded, breaking its tokens into their separate units and preserving meaning.
 func (cr *CronRead) Decode() *CronExpressionDecoded {
 	str := cr.String()
 	var catchAll []Catcher
@@ -153,6 +160,7 @@ func (cr *CronRead) Decode() *CronExpressionDecoded {
 	return &catchAllDecoded
 }
 
+// validate does a quick and shallow validation the string cron string passed into cron table. It returns a bool which signifies if the string is valid or not.
 func validate(s string) bool {
 	if s == "*" || canBeNumber(s) || containFavoredDelimiter(s) || startSlash(s) {
 		return true
@@ -334,10 +342,6 @@ func (cr *CronRead) MarshalIntoCronExpression() (*CronExpression, error) {
 }
 
 func (cr *CronRead) String() string {
-	//ref := reflect.ValueOf(cr)
-	//if ref.Kind() != reflect.String {
-	//	return ""
-	//}
 	rattle := fmt.Sprintf("%v", *cr)
 	return rattle
 }

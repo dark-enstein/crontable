@@ -26,23 +26,26 @@ const (
 	TextRange    = "between the %v and %v %v"
 )
 
-var (
-	min        = "on the 5th and 9th minute"
-	hour       = "between the 3rd and 19th hour"
-	dayOfMonth = "every 5th of the month"
-	month      = "on the 9th month"
-	dayOfWeek  = "every day of the week"
-)
+// Just for ref, not very usable
+//var (
+//	min        = "on the 5th and 9th minute"
+//	hour       = "between the 3rd and 19th hour"
+//	dayOfMonth = "every 5th of the month"
+//	month      = "on the 9th month"
+//	dayOfWeek  = "every day of the week"
+//)
 
 type Writer interface {
 }
 
 type Written []byte
 
+// Write writes the meaning output s to the io.Writer exit. It returns the number of bytes written, and an error
 func Write(exit io.Writer, s []byte) (int, error) {
 	return exit.Write(s)
 }
 
+// Explain parses reader.CronExpressionDecoded into a meaningful response, and returns a byte slice
 func Explain(dec *reader.CronExpressionDecoded) []byte {
 	// Get ordered keys so that I can range over the map in an orderly manner
 	keys, mapDec := dec.FlattenToMap()
@@ -142,12 +145,14 @@ func Explain(dec *reader.CronExpressionDecoded) []byte {
 	return []byte(title)
 }
 
+// titulate helps us be civil, starting the sentence with capital letters
 func titulate(s string) string {
 	sRune := []rune(s)
 	sRune[0] = []rune(strings.ToUpper(string(sRune[0])))[0]
 	return string(sRune)
 }
 
+// NorminalToOrdinal convert integers (1 & 2) to their ordinal (1st, 2nd) forms. Relies on patterns observed from 1-1000; only tested on numbers within range 1-31
 func NorminalToOrdinal(i int) string {
 	iStr := []rune(strconv.Itoa(i))
 	switch true {
@@ -167,6 +172,7 @@ func NorminalToOrdinal(i int) string {
 	}
 }
 
+// resolveAll helps orchestrate the inner-workings of Explain. It is like the "kubernetes of netflix"
 func resolveAll(v reader.Catcher) (string, []string, string, error) {
 	lowOrd, structure := "", ""
 	highOrd := make([]string, len(v.High), len(v.High))
@@ -205,6 +211,7 @@ func resolveAll(v reader.Catcher) (string, []string, string, error) {
 	return lowOrd, highOrd, structure, nil
 }
 
+// commaAddMoreRef helps account for some edge cases where more digits can be separately specified for a particular time-block in a cron expression: 3,4,5,2 for 3rd, 4th, 5th and 2nd of the relevant time period
 func commaAddMoreRef(s string, list []int) string {
 	if len(list) <= 2 {
 		return s
