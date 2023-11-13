@@ -1,10 +1,55 @@
-# crontable
-a cron expression parse
+# Crontable Reader and Writer
+Crontable Reader and Writer is a Go project that provides robust tools for reading, parsing, validating, and explaining cron expressions. The project is split into two main packages: reader and writer. The reader package focuses on interpreting and validating cron expressions, while the writer package converts these expressions into human-readable descriptions.
 
-#### i guess this is my attempt to make a parser within 20 hours, didn't quite work out completely well, right now the `reader` and `meaning` pkgs are a glass house, sitting carefully behing their test cases, any variation comes like a small pebble just heavy enough. will try sometime else; hopefully I'm more experienced in the art; but anyways here below is how it should be used
+Features
+- Cron Expression Parsing: Efficiently reads and parses cron expressions.
+- Validation: Validates cron expressions against syntax rules and value bounds.
+- Decoding: Converts cron expression strings into a structured format.
+- Human-Readable Descriptions: Translates cron expressions into clear, understandable text.
+
+Installation
+To use the Crontable Reader and Writer in your Go project, import the packages as follows:
 
 ```
--> crontable <path to crontab>
-Your crontab expression reads,
-"On the 5th and 9th minute, between the 3rd and 19th hour, every 5th of the month, on the 5th month, every day of the week"
+import (
+    "github.com/dark-enstein/crontable/reader"
+    "github.com/dark-enstein/crontable/writer"
+)
 ```
+
+Usage
+Reading and Validating Cron Expressions
+```
+// Open a cron file and read the first line as a CronRead
+cronRead, err := reader.OpenCrontableFile("path/to/cronfile")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Validate the cron expression
+isValid, err := cronRead.Validate()
+if err != nil {
+    log.Fatal(err)
+}
+
+// Decode the cron expression into a structured format
+decoded := cronRead.Decode()
+```
+
+Writing Human-Readable Descriptions
+```
+// Explain the decoded cron expression
+meaning := writer.Explain(decoded)
+
+// Output the explanation
+fmt.Println(string(meaning))
+```
+
+Dependencies
+Go standard library
+
+Contributing
+Contributions to the Crontable are welcome.
+
+License
+This project is licensed under the MIT License - see the LICENSE file for details.
